@@ -4,6 +4,8 @@
 
 .env
 bin
+docker/mysql/data
+docs
 
 # Binaries for programs and plugins
 *.exe
