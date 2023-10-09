@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -11,8 +12,15 @@ type Database struct {
 	Error error
 }
 
-func InitDB() Database {
-	db, err := sql.Open("mysql", "developer:dev@(172.19.0.2:3306)/myfinance")
-	var instance Database = Database{db, err}
-	return instance
+var databaseInstance Database
+
+func GetInstance() Database {
+	databaseInstance_ptr := &databaseInstance
+	if databaseInstance_ptr.Inst != nil {
+		return databaseInstance
+	}
+
+	db, err := sql.Open(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
+	*databaseInstance_ptr = Database{db, err}
+	return databaseInstance
 }
