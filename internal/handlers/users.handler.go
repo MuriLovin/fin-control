@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -13,46 +12,113 @@ import (
 
 type User struct {
 	Name     string `json:"name"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-func AllUsers(writer http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(writer, "Hello, World! Thanks for your request\n")
+type UserDTO struct {
+	Id         uint32    `json:"id"`
+	Name       string    `json:"name"`
+	Username   string    `json:"username"`
+	Created_at time.Time `json:"created_at"`
 }
 
 func SaveUser(writer http.ResponseWriter, request *http.Request) {
 	var user User
 	json.NewDecoder(request.Body).Decode(&user)
-	db := database.InitDB()
+	db := database.GetInstance()
 
 	if db.Error != nil {
 		log.Default().Fatal(db.Error)
+		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "Internal server error: failed to connect with database")
+
+		response := ErrorHandlerResponse{
+			Code:    "INIT_DB_FAIL",
+			Message: "Internal server error: failed to connect with database",
+		}
+
+		json.NewEncoder(writer).Encode(response)
 		return
 	}
 
 	_, err := db.Inst.Exec(
-		"INSERT INTO users (name, password, created_at) VALUES (?, ?, ?)",
+		"INSERT INTO users (name, username, password) VALUES (?, ?, ?)",
 		user.Name,
+		user.Username,
 		user.Password,
-		time.Now(),
 	)
 
 	if err != nil {
+		log.Default().Println(err)
+		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "Error to save user")
+
+		response := ErrorHandlerResponse{
+			Code:    "EXEC_DB_FAIL",
+			Message: "Internal server error: fail to execute the resource",
+		}
+
+		json.NewEncoder(writer).Encode(response)
 		return
 	}
 
+	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
-	fmt.Fprint(writer, "User created successfully")
+
+	response := SimpleHandlerResponse{
+		Code:    "EXEC_DB_SUCCESS",
+		Message: "User created successful",
+	}
+
+	json.NewEncoder(writer).Encode(response)
 }
 
-func FriendHandler(writer http.ResponseWriter, request *http.Request) {
+func FindUser(writer http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
-	name := vars["friend"]
+	userId := vars["userId"]
 
-	user := User{name, "here i am"}
-	fmt.Fprintf(writer, "Hello, %s: your password is %s\n", user.Name, user.Password)
+	db := database.GetInstance()
+
+	if db.Error != nil {
+		log.Default().Println(db.Error)
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusInternalServerError)
+
+		response := ErrorHandlerResponse{
+			Code:    "EXEC_DB_FAIL",
+			Message: "Internal server error: fail to execute the resource",
+		}
+
+		json.NewEncoder(writer).Encode(response)
+		return
+	}
+
+	var user UserDTO
+	query := `SELECT id, name, username, created_at FROM users WHERE id = ?`
+	err := db.Inst.QueryRow(query, userId).Scan(&user.Id, &user.Name, &user.Username, &user.Created_at)
+
+	if err != nil {
+		log.Default().Println(err)
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+
+		response := SimpleHandlerResponse{
+			Code:    "EXEC_DB_SUCCESS",
+			Message: "User not found",
+		}
+
+		json.NewEncoder(writer).Encode(response)
+		return
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+
+	response := HandlerResponse[UserDTO]{
+		Code: "EXEC_DB_SUCCESS",
+		Data: user,
+	}
+
+	json.NewEncoder(writer).Encode(response)
 }
