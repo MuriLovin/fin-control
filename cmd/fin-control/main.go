@@ -1,26 +1,25 @@
 package main
 
 import (
-	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/MuriLovin/fin-control/internal/router"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	router := router.InitRouter()
-	err := http.ListenAndServe(":8090", router)
-
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("Server closed with error: %s\n", err)
-		return
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file\n")
 	}
 
+	router := router.InitRouter()
+	err = http.ListenAndServe(":"+os.Getenv("PORT"), router)
+
 	if err != nil {
-		fmt.Printf("Server closed with error: %s\n", err)
-		os.Exit(1)
+		log.Fatalf("Server closed with error: %s\n", err)
 		return
 	}
 }
