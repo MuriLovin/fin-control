@@ -38,15 +38,20 @@ func SaveManagement(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Println(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "INIT_DB_FAIL",
-			Message: "Internal server error: failed to connect with database",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Failed to connect with database",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: InitDbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -63,27 +68,35 @@ func SaveManagement(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		log.Default().Println(err)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := SimpleHandlerResponse{
-		Code:    "EXEC_DB_SUCCESS",
+	responseSuccess := SimpleHandlerResponse{
 		Message: "Management created successful",
 	}
 
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: responseSuccess,
+		},
+		http.StatusOK,
+	)
 }
 
 func FindManagement(writer http.ResponseWriter, request *http.Request) {
@@ -94,15 +107,20 @@ func FindManagement(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Println(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -120,27 +138,29 @@ func FindManagement(writer http.ResponseWriter, request *http.Request) {
 	)
 
 	if err != nil {
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusNotFound)
-
-		response := SimpleHandlerResponse{
-			Code:    "EXEC_DB_SUCCESS",
+		responseNotFound := SimpleHandlerResponse{
 			Message: "Management not found",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbSuccessCode,
+				Data: responseNotFound,
+			},
+			http.StatusNotFound,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := HandlerResponse[ManagementDTO]{
-		Code: "EXEC_DB_SUCCESS",
-		Data: management,
-	}
-
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: management,
+		},
+		http.StatusOK,
+	)
 }
 
 func FindAllUserManagement(writer http.ResponseWriter, request *http.Request) {
@@ -151,15 +171,20 @@ func FindAllUserManagement(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Println(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -167,15 +192,19 @@ func FindAllUserManagement(writer http.ResponseWriter, request *http.Request) {
 	rows, err := db.Inst.Query(query, userId)
 	if err != nil {
 		log.Default().Println(err)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := SimpleHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
+		responseSuccess := SimpleHandlerResponse{
 			Message: "Internal server error: fail to retrieve rows",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: SuccessResponseCode,
+				Data: responseSuccess,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -197,28 +226,32 @@ func FindAllUserManagement(writer http.ResponseWriter, request *http.Request) {
 
 		if err != nil {
 			log.Default().Println(err)
-			writer.WriteHeader(http.StatusInternalServerError)
-			writer.Header().Add("Content-type", "application/json")
 
-			response := SimpleHandlerResponse{
-				Code:    "EXEC_DB_FAIL",
-				Message: "Internal server error: fail to retrieve rows",
+			responseError := ErrorHandlerResponse{
+				Error:   "Internal server error",
+				Message: "Fail to retrieve rows",
 			}
 
-			json.NewEncoder(writer).Encode(response)
+			JsonResponse(
+				&writer,
+				HandlerResponse{
+					Code: DbErrorCode,
+					Data: responseError,
+				},
+				http.StatusInternalServerError,
+			)
 			return
 		}
 
 		managements = append(managements, management)
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := HandlerResponse[[]ManagementDTO]{
-		Code: "EXEC_DB_SUCCESS",
-		Data: managements,
-	}
-
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: managements,
+		},
+		http.StatusOK,
+	)
 }

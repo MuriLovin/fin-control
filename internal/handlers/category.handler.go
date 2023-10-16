@@ -18,8 +18,8 @@ type CategoryDTO struct {
 }
 
 type CategoryRequestBody struct {
-	Name string `json:"name"`
-	UserId uint `json:"user_id"`
+	Name   string `json:"name"`
+	UserId uint   `json:"user_id"`
 }
 
 func SaveCategory(writer http.ResponseWriter, request *http.Request) {
@@ -30,15 +30,20 @@ func SaveCategory(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Fatal(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "INIT_DB_FAIL",
-			Message: "Internal server error: failed to connect with database",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Failed to connect with database",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: InitDbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -46,27 +51,33 @@ func SaveCategory(writer http.ResponseWriter, request *http.Request) {
 	_, err := db.Inst.Exec(query, body.Name, body.UserId)
 
 	if err != nil {
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
-
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusCreated)
-
-	response := SimpleHandlerResponse{
-		Code:    "EXEC_DB_SUCCESS",
+	responseSuccess := SimpleHandlerResponse{
 		Message: "Category created successful",
 	}
 
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: responseSuccess,
+		},
+		http.StatusCreated,
+	)
 }
 
 func FindCategory(writer http.ResponseWriter, request *http.Request) {
@@ -86,25 +97,27 @@ func FindCategory(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		log.Default().Println(err)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusNotFound)
 
-		response := SimpleHandlerResponse{
-			Code:    "EXEC_DB_SUCCESS",
+		responseNotFound := SimpleHandlerResponse{
 			Message: "Category not found",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(&writer,
+			HandlerResponse{
+				Code: SuccessResponseCode,
+				Data: responseNotFound,
+			},
+			http.StatusNotFound,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := HandlerResponse[CategoryDTO]{
-		Code: "EXEC_DB_SUCCESS",
-		Data: category,
-	}
-
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: category,
+		},
+		http.StatusOK,
+	)
 }

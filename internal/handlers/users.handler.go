@@ -30,15 +30,20 @@ func SaveUser(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Fatal(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "INIT_DB_FAIL",
-			Message: "Internal server error: failed to connect with database",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to connect with database",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: InitDbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -51,27 +56,35 @@ func SaveUser(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		log.Default().Println(err)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := SimpleHandlerResponse{
-		Code:    "EXEC_DB_SUCCESS",
+	responseSuccess := SimpleHandlerResponse{
 		Message: "User created successful",
 	}
 
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: responseSuccess,
+		},
+		http.StatusOK,
+	)
 }
 
 func FindUser(writer http.ResponseWriter, request *http.Request) {
@@ -82,16 +95,20 @@ func FindUser(writer http.ResponseWriter, request *http.Request) {
 
 	if db.Error != nil {
 		log.Default().Println(db.Error)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusInternalServerError)
 
-		response := ErrorHandlerResponse{
-			Code:    "EXEC_DB_FAIL",
-			Message: "Internal server error: fail to execute the resource",
+		responseError := ErrorHandlerResponse{
+			Error:   "Internal server error",
+			Message: "Fail to execute the resource",
 		}
 
-		json.NewEncoder(writer).Encode(response)
-		return
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: DbErrorCode,
+				Data: responseError,
+			},
+			http.StatusInternalServerError,
+		)
 	}
 
 	var user UserDTO
@@ -100,25 +117,28 @@ func FindUser(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		log.Default().Println(err)
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusNotFound)
 
-		response := SimpleHandlerResponse{
-			Code:    "EXEC_DB_SUCCESS",
+		responseSuccess := SimpleHandlerResponse{
 			Message: "User not found",
 		}
 
-		json.NewEncoder(writer).Encode(response)
+		JsonResponse(
+			&writer,
+			HandlerResponse{
+				Code: SuccessResponseCode,
+				Data: responseSuccess,
+			},
+			http.StatusNotFound,
+		)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	response := HandlerResponse[UserDTO]{
-		Code: "EXEC_DB_SUCCESS",
-		Data: user,
-	}
-
-	json.NewEncoder(writer).Encode(response)
+	JsonResponse(
+		&writer,
+		HandlerResponse{
+			Code: SuccessResponseCode,
+			Data: user,
+		},
+		http.StatusOK,
+	)
 }
