@@ -3,17 +3,17 @@ BINARY_NAME=finC
 ENTRYPOINT=./cmd/fin-control/main.go
 DOCKER_COMPOSE_FILE=docker/docker-compose.yml
 
-compose-up:
-	docker compose -f $(DOCKER_COMPOSE_FILE) up -d
+run: setup build
+	./$(BINARY_PATH)/$(BINARY_NAME)
 
-compose-stop:
-	docker compose -f $(DOCKER_COMPOSE_FILE) stop
+setup:
+	docker compose -f $(DOCKER_COMPOSE_FILE) up -d
 
 build: clean
 	go build -o $(BINARY_PATH)/$(BINARY_NAME) $(ENTRYPOINT)
 
-clean:
-	rm -f bin/$(BINARY_NAME)
+teardown: clean
+	docker compose -f $(DOCKER_COMPOSE_FILE) stop
 
-run: build
-	./$(BINARY_PATH)/$(BINARY_NAME)
+clean:
+	rm -rf $(BINARY_PATH)
